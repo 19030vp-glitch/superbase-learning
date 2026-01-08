@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Shield, Zap, Users, ArrowRight } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -11,32 +11,24 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-violet-50 via-white to-cyan-50">
+    <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg">
-              <MessageCircle className="size-5" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-              SayHi
-            </span>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 flex h-14 items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2">
+            <span className="font-bold text-xl">SayHi</span>
           </Link>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center space-x-4">
             {user ? (
-              <Button asChild className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
-                <Link href="/dashboard">
-                  Go to Dashboard
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+              <Button asChild variant="default">
+                <Link href="/dashboard">Dashboard</Link>
               </Button>
             ) : (
               <>
                 <Button variant="ghost" asChild>
                   <Link href="/login">Sign In</Link>
                 </Button>
-                <Button asChild className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+                <Button asChild>
                   <Link href="/signup">Get Started</Link>
                 </Button>
               </>
@@ -45,145 +37,98 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Main Content */}
       <main className="flex-1">
-        <section className="container py-20 md:py-32">
-          <div className="flex flex-col items-center text-center gap-8">
-            {/* Decorative chat bubbles */}
-            <div className="relative">
-              <div className="absolute -top-4 -left-20 w-16 h-16 bg-violet-200 rounded-2xl rotate-12 opacity-60" />
-              <div className="absolute -top-8 -right-16 w-12 h-12 bg-cyan-200 rounded-xl -rotate-12 opacity-60" />
-              <div className="absolute top-20 -right-24 w-8 h-8 bg-indigo-200 rounded-lg rotate-45 opacity-60" />
-
-              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-                <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 bg-clip-text text-transparent">
-                  Say Hi
-                </span>
-                <br />
-                <span className="text-gray-900">to Everyone</span>
-              </h1>
-            </div>
-
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl">
-              Connect with friends, family, and colleagues in real-time.
-              Experience seamless messaging with our modern, secure chat platform.
+        <section className="container mx-auto px-4 flex flex-col items-center gap-6 py-20 md:py-32">
+          <div className="flex max-w-[800px] flex-col items-center gap-4 text-center">
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
+              Modern Chat for Everyone
+            </h1>
+            <p className="max-w-[600px] text-lg text-muted-foreground sm:text-xl">
+              Connect instantly with friends and colleagues. Simple, secure, and built for the modern web.
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 mt-4">
-              {user ? (
-                <Button size="lg" asChild className="h-14 px-8 text-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25">
-                  <Link href="/dashboard">
-                    Open Dashboard
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 mt-6">
+            {user ? (
+              <Button size="lg" asChild className="h-12 px-8">
+                <Link href="/dashboard">Go to Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button size="lg" asChild className="h-12 px-8">
+                  <Link href="/signup">Start Chatting Free</Link>
                 </Button>
-              ) : (
-                <>
-                  <Button size="lg" asChild className="h-14 px-8 text-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25">
-                    <Link href="/signup">
-                      Start Chatting Free
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </Button>
-                  <Button size="lg" variant="outline" asChild className="h-14 px-8 text-lg">
-                    <Link href="/login">Sign In</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-
-            {/* Stats */}
-            <div className="flex gap-8 mt-12 text-center">
-              <div>
-                <div className="text-3xl font-bold text-violet-600">10K+</div>
-                <div className="text-sm text-muted-foreground">Active Users</div>
-              </div>
-              <div className="w-px bg-border" />
-              <div>
-                <div className="text-3xl font-bold text-indigo-600">1M+</div>
-                <div className="text-sm text-muted-foreground">Messages Sent</div>
-              </div>
-              <div className="w-px bg-border" />
-              <div>
-                <div className="text-3xl font-bold text-cyan-600">99.9%</div>
-                <div className="text-sm text-muted-foreground">Uptime</div>
-              </div>
-            </div>
+                <Button size="lg" variant="outline" asChild className="h-12 px-8">
+                  <Link href="/login">Sign In</Link>
+                </Button>
+              </>
+            )}
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="container py-20">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Why Choose <span className="text-violet-600">SayHi</span>?
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="group p-8 rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent hover:border-violet-200">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Zap className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Real-time Messaging</h3>
-              <p className="text-muted-foreground">
-                Send and receive messages instantly. No delays, no refreshing – just seamless communication.
-              </p>
-            </div>
-
-            <div className="group p-8 rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent hover:border-indigo-200">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Shield className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Secure & Private</h3>
-              <p className="text-muted-foreground">
-                Your conversations are protected with enterprise-grade security. Your privacy is our priority.
-              </p>
-            </div>
-
-            <div className="group p-8 rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 border border-transparent hover:border-cyan-200">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Users className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Group Conversations</h3>
-              <p className="text-muted-foreground">
-                Create chat rooms for your team, friends, or community. Collaborate and connect together.
-              </p>
+        <section className="bg-muted/50 border-y py-16 md:py-24">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-8 md:grid-cols-3">
+              <Card className="bg-background shadow-sm border-none">
+                <CardHeader>
+                  <CardTitle>Real-time Updates</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base text-muted-foreground">
+                    Experience blink-of-an-eye message delivery with Supabase Realtime integration.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              <Card className="bg-background shadow-sm border-none">
+                <CardHeader>
+                  <CardTitle>Secure & Private</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base text-muted-foreground">
+                    Your data is protected with enterprise-grade Row Level Security and robust authentication.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              <Card className="bg-background shadow-sm border-none">
+                <CardHeader>
+                  <CardTitle>Clean Interface</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base text-muted-foreground">
+                    Built with Shadcn UI for a professional, accessible, and distraction-free experience.
+                  </CardDescription>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
 
         {/* CTA Section */}
-        <section className="container py-20">
-          <div className="relative rounded-3xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 p-12 md:p-20 overflow-hidden">
-            <div className="absolute inset-0 bg-grid-white/10" />
-            <div className="relative z-10 text-center text-white">
-              <h2 className="text-3xl md:text-5xl font-bold mb-6">
-                Ready to Start Chatting?
-              </h2>
-              <p className="text-lg md:text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-                Join thousands of users who are already enjoying seamless conversations with SayHi.
-              </p>
-              {!user && (
-                <Button size="lg" variant="secondary" asChild className="h-14 px-8 text-lg">
-                  <Link href="/signup">
-                    Create Free Account
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-          </div>
+        <section className="container mx-auto px-4 py-20 text-center">
+          <h2 className="text-3xl font-bold mb-4 tracking-tight">Ready to join our community?</h2>
+          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
+            Create an account today and start connecting with people instantly.
+          </p>
+          {!user && (
+            <Button size="lg" asChild className="h-12 px-8">
+              <Link href="/signup">Create Free Account</Link>
+            </Button>
+          )}
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-white/50 py-8">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-violet-600" />
-            <span className="font-semibold text-violet-600">SayHi</span>
-          </div>
+      <footer className="border-t py-12">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2026 SayHi. All rights reserved.
+            © 2026 SayHi. Built with Next.js & Supabase.
           </p>
+          <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+            <Link href="#" className="hover:text-foreground">Privacy</Link>
+            <Link href="#" className="hover:text-foreground">Terms</Link>
+            <Link href="#" className="hover:text-foreground">Support</Link>
+          </div>
         </div>
       </footer>
     </div>

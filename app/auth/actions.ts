@@ -28,7 +28,7 @@ export async function signup(formData: FormData) {
 
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-    const origin = (await (await import("next/headers")).headers()).get("origin");
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const { error } = await supabase.auth.signUp({
         email,
@@ -55,7 +55,7 @@ export async function signOut() {
 export async function forgotPassword(formData: FormData) {
     const supabase = await createClient();
     const email = formData.get("email") as string;
-    const origin = (await (await import("next/headers")).headers()).get("origin");
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${origin}/auth/callback?next=/reset-password`,
@@ -121,7 +121,7 @@ export async function updateProfile(formData: FormData) {
 
 export async function signInWithGoogle() {
     const supabase = await createClient();
-    const origin = (await (await import("next/headers")).headers()).get("origin");
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -141,7 +141,7 @@ export async function signInWithGoogle() {
 
 export async function signInWithGitHub() {
     const supabase = await createClient();
-    const origin = (await (await import("next/headers")).headers()).get("origin");
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "github",
