@@ -26,7 +26,7 @@ export async function createRoom(formData: FormData) {
         .single();
 
     if (error) {
-        return { error: error.message };
+        return redirect("/dashboard/chat?error=" + encodeURIComponent(error.message));
     }
 
     revalidatePath("/dashboard/chat");
