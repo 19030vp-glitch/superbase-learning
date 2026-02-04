@@ -1,22 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sendMessage } from "@/app/dashboard/chat/actions";
 import { SendHorizontal } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 interface ChatInputProps {
     roomId: string;
+    user: User;
 }
 
-export function ChatInput({ roomId }: ChatInputProps) {
+export function ChatInput({ roomId, user }: ChatInputProps) {
     const [content, setContent] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const supabase = createClient();
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!content.trim() || isLoading) return;
+
+        // Stop typing indicator when sending
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            sendTypingStatus(false);
+        }
 
         setIsLoading(true);
         const result = await sendMessage(roomId, content);
@@ -27,6 +38,19 @@ export function ChatInput({ roomId }: ChatInputProps) {
         }
     };
 
+    const sendTypingStatus = async (isTyping: boolean) => {
+        const channel = supabase.channel(`room:${roomId}`);
+        await channel.send({
+            type: "broadcast",
+            event: "typing",
+            payload: {
+                isTyping,
+                userId: user.id,
+                userName: user.user_metadata?.full_name || user.email || "Someone"
+            },
+        });
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -34,11 +58,28 @@ export function ChatInput({ roomId }: ChatInputProps) {
         }
     };
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setContent(e.target.value);
+
+        if (!typingTimeoutRef.current) {
+            sendTypingStatus(true);
+        }
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            sendTypingStatus(false);
+            typingTimeoutRef.current = null;
+        }, 3000);
+    };
+
     return (
         <form onSubmit={handleSend} className="flex gap-2 p-4 border-t">
             <Input
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 disabled={isLoading}
