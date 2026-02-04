@@ -5,16 +5,18 @@ import { createClient } from "@/utils/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+interface Profile {
+    full_name: string | null;
+    avatar_url: string | null;
+    username: string | null;
+}
+
 interface Message {
     id: string;
     content: string;
     created_at: string;
     user_id: string;
-    profiles: {
-        full_name: string | null;
-        avatar_url: string | null;
-        username: string | null;
-    } | null;
+    profiles: Profile | Profile[] | null;
 }
 
 interface ChatMessagesProps {
@@ -30,7 +32,15 @@ export function ChatMessages({
 }: ChatMessagesProps) {
     const [messages, setMessages] = useState<Message[]>(initialMessages as Message[]);
     const supabase = createClient();
-    const scrollRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     useEffect(() => {
         // Subscribe to real-time changes
@@ -64,25 +74,24 @@ export function ChatMessages({
         };
     }, [roomId, supabase]);
 
-    useEffect(() => {
-        if (scrollRef.current) {
-            setTimeout(() => {
-                scrollRef.current!.scrollTop = scrollRef.current!.scrollHeight;
-            }, 50);
-        }
-    }, [messages]);
-
     return (
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <ScrollArea className="flex-1 p-4">
             <div className="flex flex-col gap-4">
                 {messages.map((message) => {
                     const isOwnMessage = message.user_id === currentUserId;
-                    const displayName = message.profiles?.full_name || message.profiles?.username || "User";
-                    const avatarUrl = message.profiles?.avatar_url;
+
+                    // Defensive check: profiles might be returned as an array or object depending on Supabase query result
+                    const profileData = Array.isArray(message.profiles)
+                        ? message.profiles[0]
+                        : message.profiles;
+
+                    const displayName = profileData?.full_name || profileData?.username || "User";
+                    const avatarUrl = profileData?.avatar_url;
 
                     return (
                         <div
                             key={message.id}
+                            data-message-id={message.id}
                             className={`flex items-start gap-3 ${isOwnMessage ? "flex-row-reverse" : ""
                                 }`}
                         >
@@ -116,6 +125,7 @@ export function ChatMessages({
                         </div>
                     );
                 })}
+                <div ref={messagesEndRef} />
                 {messages.length === 0 && (
                     <div className="flex items-center justify-center py-10">
                         <p className="text-sm text-muted-foreground">No messages yet. Say hi!</p>

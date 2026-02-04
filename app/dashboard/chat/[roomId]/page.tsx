@@ -64,8 +64,9 @@ export default async function RoomPage({
                 </div>
             </div>
 
-            <Card className="flex flex-col h-[calc(100vh-16rem)]">
+            <Card className="flex flex-col h-[calc(100vh-16rem)] py-0 gap-0 overflow-hidden">
                 <ChatMessages
+                    key={roomId}
                     roomId={roomId}
                     initialMessages={initialMessages || []}
                     currentUserId={user.id}
