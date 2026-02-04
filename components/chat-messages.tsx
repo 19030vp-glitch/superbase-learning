@@ -19,7 +19,7 @@ interface Message {
 
 interface ChatMessagesProps {
     roomId: string;
-    initialMessages: any[];
+    initialMessages: Message[];
     currentUserId: string;
 }
 

@@ -50,15 +50,15 @@ export default async function Home() {
           </div>
           <div className="flex flex-col sm:flex-row gap-4 mt-6">
             {user ? (
-              <Button size="lg" asChild className="h-12 px-8">
+              <Button size="lg" asChild>
                 <Link href="/dashboard">Go to Dashboard</Link>
               </Button>
             ) : (
               <>
-                <Button size="lg" asChild className="h-12 px-8">
+                <Button size="lg" asChild>
                   <Link href="/signup">Start Chatting Free</Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="h-12 px-8">
+                <Button size="lg" variant="outline" asChild>
                   <Link href="/login">Sign In</Link>
                 </Button>
               </>
@@ -70,32 +70,32 @@ export default async function Home() {
         <section className="bg-muted/50 border-y py-16 md:py-24">
           <div className="container mx-auto px-4">
             <div className="grid gap-8 md:grid-cols-3">
-              <Card className="bg-background shadow-sm border-none">
+              <Card>
                 <CardHeader>
                   <CardTitle>Real-time Updates</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-base text-muted-foreground">
+                  <CardDescription>
                     Experience blink-of-an-eye message delivery with Supabase Realtime integration.
                   </CardDescription>
                 </CardContent>
               </Card>
-              <Card className="bg-background shadow-sm border-none">
+              <Card>
                 <CardHeader>
                   <CardTitle>Secure & Private</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-base text-muted-foreground">
+                  <CardDescription>
                     Your data is protected with enterprise-grade Row Level Security and robust authentication.
                   </CardDescription>
                 </CardContent>
               </Card>
-              <Card className="bg-background shadow-sm border-none">
+              <Card>
                 <CardHeader>
                   <CardTitle>Clean Interface</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-base text-muted-foreground">
+                  <CardDescription>
                     Built with Shadcn UI for a professional, accessible, and distraction-free experience.
                   </CardDescription>
                 </CardContent>
@@ -111,7 +111,7 @@ export default async function Home() {
             Create an account today and start connecting with people instantly.
           </p>
           {!user && (
-            <Button size="lg" asChild className="h-12 px-8">
+            <Button size="lg" asChild>
               <Link href="/signup">Create Free Account</Link>
             </Button>
           )}
