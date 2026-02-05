@@ -66,11 +66,12 @@ export default async function RoomPage({
 
             <Card className="flex flex-col h-[calc(100vh-16rem)]">
                 <ChatMessages
+                    key={roomId}
                     roomId={roomId}
                     initialMessages={initialMessages || []}
                     currentUserId={user.id}
                 />
-                <ChatInput roomId={roomId} />
+                <ChatInput roomId={roomId} user={user} />
             </Card>
         </div>
     );
