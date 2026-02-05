@@ -42,3 +42,38 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Create rooms table
+create table if not exists rooms (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  name text not null,
+  created_by uuid references auth.users on delete cascade not null
+);
+
+-- Create messages table
+create table if not exists messages (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  room_id uuid references rooms on delete cascade not null,
+  user_id uuid references auth.users on delete cascade not null,
+  content text not null
+);
+
+-- Enable RLS
+alter table rooms enable row level security;
+alter table messages enable row level security;
+
+-- Policies for rooms
+create policy "Rooms are viewable by authenticated users." on rooms
+  for select using (auth.uid() is not null);
+
+create policy "Authenticated users can create rooms." on rooms
+  for insert with check (auth.uid() is not null);
+
+-- Policies for messages
+create policy "Messages are viewable by authenticated users." on messages
+  for select using (auth.uid() is not null);
+
+create policy "Authenticated users can insert messages." on messages
+  for insert with check (auth.uid() is not null);

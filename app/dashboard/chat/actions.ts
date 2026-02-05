@@ -54,5 +54,6 @@ export async function sendMessage(roomId: string, content: string) {
         return { error: error.message };
     }
 
+    revalidatePath(`/dashboard/chat/${roomId}`);
     return { success: true };
 }
