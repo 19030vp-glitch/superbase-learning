@@ -34,6 +34,13 @@ export default async function RoomPage({
         notFound();
     }
 
+    // Fetch current user's profile
+    const { data: currentUserProfile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url, username")
+        .eq("id", user.id)
+        .single();
+
     // Fetch initial messages with profile data
     const { data: initialMessages } = await supabase
         .from("messages")
@@ -64,12 +71,13 @@ export default async function RoomPage({
                 </div>
             </div>
 
-            <Card className="flex flex-col h-[calc(100vh-16rem)]">
+            <Card className="flex flex-col h-[calc(100vh-16rem)] overflow-hidden">
                 <ChatMessages
                     key={roomId}
                     roomId={roomId}
                     initialMessages={initialMessages || []}
                     currentUserId={user.id}
+                    currentUserProfile={currentUserProfile || undefined}
                 />
                 <ChatInput roomId={roomId} user={user} />
             </Card>
