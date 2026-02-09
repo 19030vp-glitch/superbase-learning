@@ -77,3 +77,6 @@ create policy "Messages are viewable by authenticated users." on messages
 
 create policy "Authenticated users can insert messages." on messages
   for insert with check (auth.uid() is not null);
+
+-- Enable realtime for messages
+alter publication supabase_realtime add table messages;

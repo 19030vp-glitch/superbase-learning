@@ -54,6 +54,7 @@ export async function sendMessage(roomId: string, content: string) {
         return { error: error.message };
     }
 
-    revalidatePath(`/dashboard/chat/${roomId}`);
+    // We don't call revalidatePath here because the ChatMessages component
+    // uses real-time subscriptions to receive new messages.
     return { success: true };
 }

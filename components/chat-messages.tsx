@@ -51,12 +51,28 @@ export function ChatMessages({
     const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
     const [onlineCount, setOnlineCount] = useState(0);
     const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        setMessages(initialMessages);
-    }, [initialMessages]);
+    // Sync initialMessages with local messages state when props change
+    const [prevInitialMessages, setPrevInitialMessages] = useState(initialMessages);
+    if (initialMessages !== prevInitialMessages) {
+        setPrevInitialMessages(initialMessages);
+        setMessages((current) => {
+            // Merge initialMessages with current messages to avoid disappearing messages
+            // due to race conditions with revalidatePath and Postgres replication lag.
+            const merged = [...initialMessages];
+            const initialIds = new Set(initialMessages.map(m => m.id));
+
+            current.forEach(m => {
+                if (!initialIds.has(m.id)) {
+                    merged.push(m);
+                }
+            });
+
+            return merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        });
+    }
 
     useEffect(() => {
         // Subscribe to real-time changes and presence
@@ -74,6 +90,12 @@ export function ChatMessages({
                 async (payload) => {
                     const newMessage = payload.new as Message;
 
+                    // Avoid duplicate messages if revalidatePath also triggered an update
+                    setMessages((current) => {
+                        if (current.find(m => m.id === newMessage.id)) return current;
+                        return current; // We'll add it after fetching the profile
+                    });
+
                     // Fetch profile for the new message
                     const { data: profile } = await supabase
                         .from("profiles")
@@ -81,7 +103,10 @@ export function ChatMessages({
                         .eq("id", newMessage.user_id)
                         .single();
 
-                    setMessages((current) => [...current, { ...newMessage, profiles: profile }]);
+                    setMessages((current) => {
+                        if (current.find(m => m.id === newMessage.id)) return current;
+                        return [...current, { ...newMessage, profiles: profile }];
+                    });
                 }
             )
             .on("presence", { event: "sync" }, () => {
