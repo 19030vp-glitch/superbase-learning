@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { UserNav } from "@/components/user-nav";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { NotificationHandler } from "@/components/notification-handler";
 
 export default async function DashboardLayout({
     children,
@@ -21,6 +21,7 @@ export default async function DashboardLayout({
 
     return (
         <div className="flex min-h-screen flex-col">
+            <NotificationHandler currentUserId={user.id} />
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="container mx-auto px-4 flex h-14 items-center justify-between">
                     <div className="flex items-center space-x-8">
