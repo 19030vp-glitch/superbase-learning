@@ -11,26 +11,7 @@ import {
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, CartesianGrid } from "recharts";
 import { Reply } from "lucide-react";
-
-interface Message {
-    id: string;
-    content: string;
-    created_at: string;
-    user_id: string;
-    profiles: {
-        full_name: string | null;
-        avatar_url: string | null;
-        username: string | null;
-    } | null;
-    reply_to?: string;
-    reply_to_message?: {
-        content: string;
-        profiles: {
-            full_name: string | null;
-            username: string | null;
-        } | null;
-    } | null;
-}
+import { Message } from "@/lib/types";
 
 interface ChatMessagesProps {
     roomId: string;
@@ -41,6 +22,7 @@ interface ChatMessagesProps {
         avatar_url: string | null;
         username: string | null;
     };
+    onReply?: (message: { id: string; content: string; username: string }) => void;
 }
 
 interface OnlineUser {
@@ -55,6 +37,7 @@ export function ChatMessages({
     initialMessages,
     currentUserId,
     currentUserProfile,
+    onReply,
 }: ChatMessagesProps) {
     const [messages, setMessages] = useState<Message[]>(initialMessages as Message[]);
     const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -83,33 +66,32 @@ export function ChatMessages({
                 async (payload) => {
                     const newMessage = payload.new as Message;
 
-                    // Fetch profile for the new message
-                    const { data: profile } = await supabase
-                        .from("profiles")
-                        .select("full_name, avatar_url, username")
-                        .eq("id", newMessage.user_id)
-                        .single();
-
-                    let replyToMessage = null;
-                    if (newMessage.reply_to) {
-                        const { data: replyData } = await supabase
-                            .from("messages")
-                            .select(`
-                                content,
-                                profiles (
-                                    full_name,
-                                    username
-                                )
-                            `)
-                            .eq("id", newMessage.reply_to)
-                            .single();
-                        replyToMessage = replyData;
-                    }
+                    // Fetch profile and reply data in parallel
+                    const [profileResult, replyResult] = await Promise.all([
+                        supabase
+                            .from("profiles")
+                            .select("full_name, avatar_url, username")
+                            .eq("id", newMessage.user_id)
+                            .single(),
+                        newMessage.reply_to
+                            ? supabase
+                                .from("messages")
+                                .select(`
+                                    content,
+                                    profiles (
+                                        full_name,
+                                        username
+                                    )
+                                `)
+                                .eq("id", newMessage.reply_to)
+                                .single()
+                            : Promise.resolve({ data: null })
+                    ]);
 
                     setMessages((current) => [...current, {
                         ...newMessage,
-                        profiles: profile,
-                        reply_to_message: replyToMessage as any
+                        profiles: profileResult.data,
+                        reply_to_message: replyResult.data as any
                     }]);
                 }
             )
@@ -276,25 +258,23 @@ export function ChatMessages({
                                             </span>
                                         )}
                                         <div className="relative group flex items-center gap-2">
-                                            {isOwnMessage && (
+                                            {isOwnMessage && onReply && (
                                                 <button
-                                                    onClick={() => window.dispatchEvent(new CustomEvent('reply-to-message', {
-                                                        detail: {
-                                                            id: message.id,
-                                                            content: message.content,
-                                                            username: displayName
-                                                        }
-                                                    }))}
-                                                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 hover:bg-muted rounded text-muted-foreground"
+                                                    onClick={() => onReply({
+                                                        id: message.id,
+                                                        content: message.content,
+                                                        username: displayName
+                                                    })}
+                                                    className="opacity-100 md:opacity-0 md:group-hover/msg:opacity-100 transition-all p-1.5 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground shrink-0"
                                                     title="Reply"
                                                 >
                                                     <Reply className="w-4 h-4" />
                                                 </button>
                                             )}
                                             <div
-                                                className={`rounded-lg px-3 py-2 text-sm shadow-sm overflow-hidden ${isOwnMessage
-                                                    ? "bg-primary text-primary-foreground"
-                                                    : "bg-muted"
+                                                className={`rounded-2xl px-4 py-2 text-sm shadow-sm overflow-hidden transition-all group-hover/msg:shadow-md ${isOwnMessage
+                                                    ? "bg-primary text-primary-foreground rounded-tr-none"
+                                                    : "bg-muted rounded-tl-none"
                                                     }`}
                                             >
                                                 {message.reply_to_message && (
@@ -305,16 +285,14 @@ export function ChatMessages({
                                                 )}
                                                 {renderMessageContent(message.content)}
                                             </div>
-                                            {!isOwnMessage && (
+                                            {!isOwnMessage && onReply && (
                                                 <button
-                                                    onClick={() => window.dispatchEvent(new CustomEvent('reply-to-message', {
-                                                        detail: {
-                                                            id: message.id,
-                                                            content: message.content,
-                                                            username: displayName
-                                                        }
-                                                    }))}
-                                                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 hover:bg-muted rounded text-muted-foreground"
+                                                    onClick={() => onReply({
+                                                        id: message.id,
+                                                        content: message.content,
+                                                        username: displayName
+                                                    })}
+                                                    className="opacity-100 md:opacity-0 md:group-hover/msg:opacity-100 transition-all p-1.5 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground shrink-0"
                                                     title="Reply"
                                                 >
                                                     <Reply className="w-4 h-4" />

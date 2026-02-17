@@ -1,7 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { notFound, redirect } from "next/navigation";
-import { ChatMessages } from "@/components/chat-messages";
-import { ChatInput } from "@/components/chat-input";
+import { ChatView } from "@/components/chat-view";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
@@ -78,15 +77,14 @@ export default async function RoomPage({
                 </div>
             </div>
 
-            <Card className="flex flex-col h-[calc(100vh-16rem)] overflow-hidden">
-                <ChatMessages
+            <Card className="flex flex-col h-[calc(100vh-16rem)] overflow-hidden border-none shadow-2xl bg-muted/20">
+                <ChatView
                     key={roomId}
                     roomId={roomId}
                     initialMessages={initialMessages || []}
-                    currentUserId={user.id}
+                    user={user}
                     currentUserProfile={currentUserProfile || undefined}
                 />
-                <ChatInput roomId={roomId} user={user} />
             </Card>
         </div>
     );
