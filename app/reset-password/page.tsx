@@ -68,6 +68,7 @@ export default function ResetPasswordPage({
                         </Link>
                     </div>
                 </CardContent>
+
             </Card>
         </div>
     );
