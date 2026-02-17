@@ -44,12 +44,17 @@ export async function sendMessage(roomId: string, content: string, replyToId?: s
         return { error: "Not authenticated" };
     }
 
-    const { error } = await supabase.from("messages").insert({
+    const messageData: Record<string, string> = {
         room_id: roomId,
         user_id: user.id,
         content,
-        reply_to: replyToId,
-    });
+    };
+
+    if (replyToId) {
+        messageData.reply_to = replyToId;
+    }
+
+    const { error } = await supabase.from("messages").insert(messageData);
 
     if (error) {
         return { error: error.message };
