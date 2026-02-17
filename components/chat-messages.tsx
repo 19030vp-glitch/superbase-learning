@@ -66,32 +66,40 @@ export function ChatMessages({
                 async (payload) => {
                     const newMessage = payload.new as Message;
 
-                    // Fetch profile and reply data in parallel
-                    const [profileResult, replyResult] = await Promise.all([
-                        supabase
-                            .from("profiles")
-                            .select("full_name, avatar_url, username")
-                            .eq("id", newMessage.user_id)
-                            .single(),
-                        newMessage.reply_to
-                            ? supabase
-                                .from("messages")
-                                .select(`
-                                    content,
-                                    profiles (
-                                        full_name,
-                                        username
-                                    )
-                                `)
-                                .eq("id", newMessage.reply_to)
-                                .single()
-                            : Promise.resolve({ data: null })
-                    ]);
+                    // Fetch profile for the new message
+                    const profileResult = await supabase
+                        .from("profiles")
+                        .select("full_name, avatar_url, username")
+                        .eq("id", newMessage.user_id)
+                        .single();
+
+                    // Fetch reply message data if applicable
+                    let replyData: any = null;
+                    if (newMessage.reply_to) {
+                        const { data: replyMsg } = await supabase
+                            .from("messages")
+                            .select("content, user_id")
+                            .eq("id", newMessage.reply_to)
+                            .single();
+
+                        if (replyMsg) {
+                            const { data: replyProfile } = await supabase
+                                .from("profiles")
+                                .select("full_name, username")
+                                .eq("id", replyMsg.user_id)
+                                .single();
+
+                            replyData = {
+                                content: replyMsg.content,
+                                profiles: replyProfile,
+                            };
+                        }
+                    }
 
                     setMessages((current) => [...current, {
                         ...newMessage,
                         profiles: profileResult.data,
-                        reply_to_message: replyResult.data as any
+                        reply_to_message: replyData
                     }]);
                 }
             )

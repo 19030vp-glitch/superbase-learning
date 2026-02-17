@@ -41,25 +41,45 @@ export default async function RoomPage({
         .single();
 
     // Fetch initial messages with profile data and replied-to message info
-    const { data: initialMessages } = await supabase
+    // Fetch messages without nested profile joins to avoid FK relationship errors
+    const { data: rawMessages } = await supabase
         .from("messages")
         .select(`
       *,
-      profiles (
-        full_name,
-        avatar_url,
-        username
-      ),
       reply_to_message:messages!reply_to (
         content,
-        profiles (
-          full_name,
-          username
-        )
+        user_id
       )
     `)
         .eq("room_id", roomId)
         .order("created_at", { ascending: true });
+
+    // Collect all unique user IDs from messages and their replies
+    const userIds = new Set<string>();
+    rawMessages?.forEach((msg: any) => {
+        userIds.add(msg.user_id);
+        if (msg.reply_to_message?.user_id) {
+            userIds.add(msg.reply_to_message.user_id);
+        }
+    });
+
+    // Fetch all profiles in one query
+    const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, username")
+        .in("id", Array.from(userIds));
+
+    const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+
+    // Enrich messages with profile data
+    const initialMessages = rawMessages?.map((msg: any) => ({
+        ...msg,
+        profiles: profileMap.get(msg.user_id) || null,
+        reply_to_message: msg.reply_to_message ? {
+            ...msg.reply_to_message,
+            profiles: profileMap.get(msg.reply_to_message.user_id) || null,
+        } : null,
+    })) || [];
 
     return (
         <div className="space-y-4">
