@@ -9,6 +9,7 @@ import { createClient } from "@/utils/supabase/client";
 import { EmojiPicker } from "@/components/emoji-picker";
 import { User } from "@supabase/supabase-js";
 import { ReplyTo } from "@/lib/types";
+import { toast } from "sonner";
 
 interface ChatInputProps {
     roomId: string;
@@ -54,6 +55,9 @@ export function ChatInput({
         if (result.success) {
             setContent("");
             onMessageSent?.();
+        } else {
+            console.error("Failed to send message:", result.error);
+            toast.error(result.error || "Failed to send message. Please try again.");
         }
     };
 
