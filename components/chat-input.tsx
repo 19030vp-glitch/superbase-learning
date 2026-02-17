@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { sendMessage } from "@/app/dashboard/chat/actions";
 import { SendHorizontal } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { User } from "@supabase/supabase-js";
 
 interface ChatInputProps {
@@ -76,7 +77,10 @@ export function ChatInput({ roomId, user }: ChatInputProps) {
     };
 
     return (
-        <form onSubmit={handleSend} className="flex gap-2 p-4 border-t">
+        <form onSubmit={handleSend} className="flex items-center gap-2 p-4 border-t">
+            <EmojiPicker
+                onChange={(emoji) => setContent((prev) => prev + emoji)}
+            />
             <Input
                 value={content}
                 onChange={handleChange}
