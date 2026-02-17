@@ -57,7 +57,8 @@ create table if not exists messages (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   room_id uuid references rooms on delete cascade not null,
   user_id uuid references auth.users on delete cascade not null,
-  content text not null
+  content text not null,
+  reply_to uuid references messages(id) on delete set null
 );
 
 -- Enable RLS

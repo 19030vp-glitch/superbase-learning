@@ -10,6 +10,7 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, CartesianGrid } from "recharts";
+import { Reply } from "lucide-react";
 
 interface Message {
     id: string;
@@ -20,6 +21,14 @@ interface Message {
         full_name: string | null;
         avatar_url: string | null;
         username: string | null;
+    } | null;
+    reply_to?: string;
+    reply_to_message?: {
+        content: string;
+        profiles: {
+            full_name: string | null;
+            username: string | null;
+        } | null;
     } | null;
 }
 
@@ -81,7 +90,27 @@ export function ChatMessages({
                         .eq("id", newMessage.user_id)
                         .single();
 
-                    setMessages((current) => [...current, { ...newMessage, profiles: profile }]);
+                    let replyToMessage = null;
+                    if (newMessage.reply_to) {
+                        const { data: replyData } = await supabase
+                            .from("messages")
+                            .select(`
+                                content,
+                                profiles (
+                                    full_name,
+                                    username
+                                )
+                            `)
+                            .eq("id", newMessage.reply_to)
+                            .single();
+                        replyToMessage = replyData;
+                    }
+
+                    setMessages((current) => [...current, {
+                        ...newMessage,
+                        profiles: profile,
+                        reply_to_message: replyToMessage as any
+                    }]);
                 }
             )
             .on("presence", { event: "sync" }, () => {
@@ -223,20 +252,22 @@ export function ChatMessages({
                             const displayName = message.profiles?.full_name || message.profiles?.username || "User";
                             const avatarUrl = message.profiles?.avatar_url;
 
+                            const repliedUser = message.reply_to_message?.profiles?.full_name || message.reply_to_message?.profiles?.username || "User";
+
                             return (
                                 <div
                                     key={message.id}
-                                    className={`flex items-start gap-3 ${isOwnMessage ? "flex-row-reverse" : ""
+                                    className={`flex items-start gap-3 group/msg ${isOwnMessage ? "flex-row-reverse" : ""
                                         }`}
                                 >
-                                    <Avatar className="h-8 w-8">
+                                    <Avatar className="h-8 w-8 shrink-0">
                                         <AvatarImage src={avatarUrl || ""} />
                                         <AvatarFallback>
                                             {displayName.substring(0, 1).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div
-                                        className={`flex flex-col gap-1 max-w-[75%] ${isOwnMessage ? "items-end" : ""
+                                        className={`flex flex-col gap-1 max-w-[75%] min-w-0 ${isOwnMessage ? "items-end" : ""
                                             }`}
                                     >
                                         {!isOwnMessage && (
@@ -244,13 +275,51 @@ export function ChatMessages({
                                                 {displayName}
                                             </span>
                                         )}
-                                        <div
-                                            className={`rounded-lg px-3 py-2 text-sm shadow-sm ${isOwnMessage
+                                        <div className="relative group flex items-center gap-2">
+                                            {isOwnMessage && (
+                                                <button
+                                                    onClick={() => window.dispatchEvent(new CustomEvent('reply-to-message', {
+                                                        detail: {
+                                                            id: message.id,
+                                                            content: message.content,
+                                                            username: displayName
+                                                        }
+                                                    }))}
+                                                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 hover:bg-muted rounded text-muted-foreground"
+                                                    title="Reply"
+                                                >
+                                                    <Reply className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <div
+                                                className={`rounded-lg px-3 py-2 text-sm shadow-sm overflow-hidden ${isOwnMessage
                                                     ? "bg-primary text-primary-foreground"
                                                     : "bg-muted"
-                                                }`}
-                                        >
-                                            {renderMessageContent(message.content)}
+                                                    }`}
+                                            >
+                                                {message.reply_to_message && (
+                                                    <div className={`mb-2 p-2 border-l-2 bg-black/5 rounded text-xs flex flex-col gap-1 ${isOwnMessage ? "border-primary-foreground/50" : "border-primary/50"}`}>
+                                                        <span className="font-bold opacity-80">{repliedUser}</span>
+                                                        <span className="truncate opacity-70 italic">{message.reply_to_message.content}</span>
+                                                    </div>
+                                                )}
+                                                {renderMessageContent(message.content)}
+                                            </div>
+                                            {!isOwnMessage && (
+                                                <button
+                                                    onClick={() => window.dispatchEvent(new CustomEvent('reply-to-message', {
+                                                        detail: {
+                                                            id: message.id,
+                                                            content: message.content,
+                                                            username: displayName
+                                                        }
+                                                    }))}
+                                                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 hover:bg-muted rounded text-muted-foreground"
+                                                    title="Reply"
+                                                >
+                                                    <Reply className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                         <span className="text-[10px] text-muted-foreground px-1">
                                             {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

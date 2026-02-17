@@ -41,7 +41,7 @@ export default async function RoomPage({
         .eq("id", user.id)
         .single();
 
-    // Fetch initial messages with profile data
+    // Fetch initial messages with profile data and replied-to message info
     const { data: initialMessages } = await supabase
         .from("messages")
         .select(`
@@ -50,6 +50,13 @@ export default async function RoomPage({
         full_name,
         avatar_url,
         username
+      ),
+      reply_to_message:messages!reply_to (
+        content,
+        profiles (
+          full_name,
+          username
+        )
       )
     `)
         .eq("room_id", roomId)
