@@ -10,18 +10,8 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, CartesianGrid } from "recharts";
-
-interface Message {
-    id: string;
-    content: string;
-    created_at: string;
-    user_id: string;
-    profiles: {
-        full_name: string | null;
-        avatar_url: string | null;
-        username: string | null;
-    } | null;
-}
+import { Reply } from "lucide-react";
+import { Message } from "@/lib/types";
 
 interface ChatMessagesProps {
     roomId: string;
@@ -32,6 +22,7 @@ interface ChatMessagesProps {
         avatar_url: string | null;
         username: string | null;
     };
+    onReply?: (message: { id: string; content: string; username: string }) => void;
 }
 
 interface OnlineUser {
@@ -46,6 +37,7 @@ export function ChatMessages({
     initialMessages,
     currentUserId,
     currentUserProfile,
+    onReply,
 }: ChatMessagesProps) {
     const [messages, setMessages] = useState<Message[]>(initialMessages as Message[]);
     const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -74,14 +66,33 @@ export function ChatMessages({
                 async (payload) => {
                     const newMessage = payload.new as Message;
 
-                    // Fetch profile for the new message
-                    const { data: profile } = await supabase
-                        .from("profiles")
-                        .select("full_name, avatar_url, username")
-                        .eq("id", newMessage.user_id)
-                        .single();
+                    // Fetch profile and reply data in parallel
+                    const [profileResult, replyResult] = await Promise.all([
+                        supabase
+                            .from("profiles")
+                            .select("full_name, avatar_url, username")
+                            .eq("id", newMessage.user_id)
+                            .single(),
+                        newMessage.reply_to
+                            ? supabase
+                                .from("messages")
+                                .select(`
+                                    content,
+                                    profiles (
+                                        full_name,
+                                        username
+                                    )
+                                `)
+                                .eq("id", newMessage.reply_to)
+                                .single()
+                            : Promise.resolve({ data: null })
+                    ]);
 
-                    setMessages((current) => [...current, { ...newMessage, profiles: profile }]);
+                    setMessages((current) => [...current, {
+                        ...newMessage,
+                        profiles: profileResult.data,
+                        reply_to_message: replyResult.data as any
+                    }]);
                 }
             )
             .on("presence", { event: "sync" }, () => {
@@ -223,20 +234,22 @@ export function ChatMessages({
                             const displayName = message.profiles?.full_name || message.profiles?.username || "User";
                             const avatarUrl = message.profiles?.avatar_url;
 
+                            const repliedUser = message.reply_to_message?.profiles?.full_name || message.reply_to_message?.profiles?.username || "User";
+
                             return (
                                 <div
                                     key={message.id}
-                                    className={`flex items-start gap-3 ${isOwnMessage ? "flex-row-reverse" : ""
+                                    className={`flex items-start gap-3 group/msg ${isOwnMessage ? "flex-row-reverse" : ""
                                         }`}
                                 >
-                                    <Avatar className="h-8 w-8">
+                                    <Avatar className="h-8 w-8 shrink-0">
                                         <AvatarImage src={avatarUrl || ""} />
                                         <AvatarFallback>
                                             {displayName.substring(0, 1).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div
-                                        className={`flex flex-col gap-1 max-w-[75%] ${isOwnMessage ? "items-end" : ""
+                                        className={`flex flex-col gap-1 max-w-[75%] min-w-0 ${isOwnMessage ? "items-end" : ""
                                             }`}
                                     >
                                         {!isOwnMessage && (
@@ -244,13 +257,47 @@ export function ChatMessages({
                                                 {displayName}
                                             </span>
                                         )}
-                                        <div
-                                            className={`rounded-lg px-3 py-2 text-sm shadow-sm ${isOwnMessage
-                                                    ? "bg-primary text-primary-foreground"
-                                                    : "bg-muted"
-                                                }`}
-                                        >
-                                            {renderMessageContent(message.content)}
+                                        <div className="relative group flex items-center gap-2">
+                                            {isOwnMessage && onReply && (
+                                                <button
+                                                    onClick={() => onReply({
+                                                        id: message.id,
+                                                        content: message.content,
+                                                        username: displayName
+                                                    })}
+                                                    className="opacity-100 md:opacity-0 md:group-hover/msg:opacity-100 transition-all p-1.5 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground shrink-0"
+                                                    title="Reply"
+                                                >
+                                                    <Reply className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <div
+                                                className={`rounded-2xl px-4 py-2 text-sm shadow-sm overflow-hidden transition-all group-hover/msg:shadow-md ${isOwnMessage
+                                                    ? "bg-primary text-primary-foreground rounded-tr-none"
+                                                    : "bg-muted rounded-tl-none"
+                                                    }`}
+                                            >
+                                                {message.reply_to_message && (
+                                                    <div className={`mb-2 p-2 border-l-2 bg-black/5 rounded text-xs flex flex-col gap-1 ${isOwnMessage ? "border-primary-foreground/50" : "border-primary/50"}`}>
+                                                        <span className="font-bold opacity-80">{repliedUser}</span>
+                                                        <span className="truncate opacity-70 italic">{message.reply_to_message.content}</span>
+                                                    </div>
+                                                )}
+                                                {renderMessageContent(message.content)}
+                                            </div>
+                                            {!isOwnMessage && onReply && (
+                                                <button
+                                                    onClick={() => onReply({
+                                                        id: message.id,
+                                                        content: message.content,
+                                                        username: displayName
+                                                    })}
+                                                    className="opacity-100 md:opacity-0 md:group-hover/msg:opacity-100 transition-all p-1.5 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground shrink-0"
+                                                    title="Reply"
+                                                >
+                                                    <Reply className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                         <span className="text-[10px] text-muted-foreground px-1">
                                             {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

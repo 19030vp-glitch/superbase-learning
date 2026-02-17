@@ -33,7 +33,7 @@ export async function createRoom(formData: FormData) {
     return redirect(`/dashboard/chat/${data.id}`);
 }
 
-export async function sendMessage(roomId: string, content: string) {
+export async function sendMessage(roomId: string, content: string, replyToId?: string) {
     const supabase = await createClient();
 
     const {
@@ -48,6 +48,7 @@ export async function sendMessage(roomId: string, content: string) {
         room_id: roomId,
         user_id: user.id,
         content,
+        reply_to: replyToId,
     });
 
     if (error) {
