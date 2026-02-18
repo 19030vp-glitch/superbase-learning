@@ -74,7 +74,7 @@ export function ChatMessages({
                         .single();
 
                     // Fetch reply message data if applicable
-                    let replyData: any = null;
+                    let replyData: Message["reply_to_message"] = null;
                     if (newMessage.reply_to) {
                         const { data: replyMsg } = await supabase
                             .from("messages")
