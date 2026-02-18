@@ -99,6 +99,7 @@ export default async function RoomPage({
 
         return {
             ...msg,
+            reply_to: msg.reply_to ?? undefined,
             profiles: profileMap.get(msg.user_id) || null,
             reply_to_message: (msg.reply_to && replyToMsg) ? {
                 ...replyToMsg,
