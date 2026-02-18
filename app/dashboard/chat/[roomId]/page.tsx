@@ -6,6 +6,21 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+interface RawReplyMessage {
+    content: string;
+    user_id: string;
+}
+
+interface RawMessage {
+    id: string;
+    content: string;
+    created_at: string;
+    user_id: string;
+    room_id: string;
+    reply_to: string | null;
+    reply_to_message: RawReplyMessage | RawReplyMessage[] | null;
+}
+
 export default async function RoomPage({
     params,
 }: {
@@ -55,11 +70,16 @@ export default async function RoomPage({
         .order("created_at", { ascending: true });
 
     // Collect all unique user IDs from messages and their replies
+    const messages = (rawMessages as unknown as RawMessage[]) || [];
     const userIds = new Set<string>();
-    rawMessages?.forEach((msg: any) => {
+    messages.forEach((msg) => {
         userIds.add(msg.user_id);
-        if (msg.reply_to_message?.user_id) {
-            userIds.add(msg.reply_to_message.user_id);
+        const replyToMsg = Array.isArray(msg.reply_to_message)
+            ? msg.reply_to_message[0]
+            : msg.reply_to_message;
+
+        if (replyToMsg?.user_id) {
+            userIds.add(replyToMsg.user_id);
         }
     });
 
@@ -69,17 +89,23 @@ export default async function RoomPage({
         .select("id, full_name, avatar_url, username")
         .in("id", Array.from(userIds));
 
-    const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+    const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
 
     // Enrich messages with profile data
-    const initialMessages = rawMessages?.map((msg: any) => ({
-        ...msg,
-        profiles: profileMap.get(msg.user_id) || null,
-        reply_to_message: msg.reply_to_message ? {
-            ...msg.reply_to_message,
-            profiles: profileMap.get(msg.reply_to_message.user_id) || null,
-        } : null,
-    })) || [];
+    const initialMessages = messages.map((msg) => {
+        const replyToMsg = Array.isArray(msg.reply_to_message)
+            ? msg.reply_to_message[0]
+            : msg.reply_to_message;
+
+        return {
+            ...msg,
+            profiles: profileMap.get(msg.user_id) || null,
+            reply_to_message: (msg.reply_to && replyToMsg) ? {
+                ...replyToMsg,
+                profiles: profileMap.get(replyToMsg.user_id) || null,
+            } : null,
+        };
+    });
 
     return (
         <div className="space-y-4">

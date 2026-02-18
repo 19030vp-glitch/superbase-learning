@@ -107,7 +107,7 @@ export function ChatInput({
                                 Replying to {replyTo.username}
                             </span>
                             <span className="text-xs text-muted-foreground truncate italic">
-                                "{replyTo.content}"
+                                &quot;{replyTo.content}&quot;
                             </span>
                         </div>
                     </div>
