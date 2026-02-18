@@ -9,9 +9,11 @@ export function useAudioRecorder() {
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const isCanceledRef = useRef(false);
 
     const startRecording = useCallback(async () => {
         try {
+            isCanceledRef.current = false;
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
             const mediaRecorder = new MediaRecorder(stream);
@@ -25,6 +27,14 @@ export function useAudioRecorder() {
             };
 
             mediaRecorder.onstop = () => {
+                if (isCanceledRef.current) {
+                    if (streamRef.current) {
+                        streamRef.current.getTracks().forEach((track) => track.stop());
+                        streamRef.current = null;
+                    }
+                    return;
+                }
+
                 const blob = new Blob(chunks, { type: "audio/webm" });
                 setAudioBlob(blob);
                 if (streamRef.current) {
@@ -60,6 +70,7 @@ export function useAudioRecorder() {
 
     const cancelRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecording) {
+            isCanceledRef.current = true;
             mediaRecorderRef.current.stop();
             setIsRecording(false);
             setAudioBlob(null);

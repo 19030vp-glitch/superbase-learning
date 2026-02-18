@@ -78,7 +78,7 @@ export default async function RoomPage({
             ? msg.reply_to_message[0]
             : msg.reply_to_message;
 
-        if (replyToMsg?.user_id) {
+        if (msg.reply_to && replyToMsg?.user_id) {
             userIds.add(replyToMsg.user_id);
         }
     });
