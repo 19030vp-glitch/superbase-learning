@@ -95,7 +95,8 @@ export function ChatMessages({
                             : Promise.resolve({ data: null })
                     ]);
 
-                    let replyData = null;
+                    // Fetch reply message data if applicable
+                    let replyData: Message["reply_to_message"] = null;
                     if (replyResult.data) {
                         const replyMsg = replyResult.data as { user_id: string; content: string };
                         const { data: replyProfile } = await supabase
