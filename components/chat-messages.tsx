@@ -47,9 +47,21 @@ export function ChatMessages({
     const supabase = createClient();
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        setMessages(initialMessages);
-    }, [initialMessages]);
+    // Deduplicate and merge initial messages with current state when props change
+    // Using render-phase state update to avoid cascading renders (React recommended pattern)
+    const [prevInitialMessages, setPrevInitialMessages] = useState(initialMessages);
+    if (initialMessages !== prevInitialMessages) {
+        setPrevInitialMessages(initialMessages);
+        setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newMessages = initialMessages.filter((m) => !existingIds.has(m.id));
+            if (newMessages.length === 0) return prev;
+
+            return [...prev, ...newMessages].sort(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+        });
+    }
 
     useEffect(() => {
         // Subscribe to real-time changes and presence
@@ -67,47 +79,47 @@ export function ChatMessages({
                 async (payload) => {
                     const newMessage = payload.new as Message;
 
-                    // Fetch profile for the new message
-                    const profileResult = await supabase
-                        .from("profiles")
-                        .select("full_name, avatar_url, username")
-                        .eq("id", newMessage.user_id)
-                        .single();
+                    // Fetch profile and reply data in parallel
+                    const [profileResult, replyResult] = await Promise.all([
+                        supabase
+                            .from("profiles")
+                            .select("full_name, avatar_url, username")
+                            .eq("id", newMessage.user_id)
+                            .single(),
+                        newMessage.reply_to
+                            ? supabase
+                                .from("messages")
+                                .select("content, user_id")
+                                .eq("id", newMessage.reply_to)
+                                .single()
+                            : Promise.resolve({ data: null })
+                    ]);
 
-                    // Fetch reply message data if applicable
-                    let replyData: {
-                        content: string;
-                        profiles: {
-                            full_name: string | null;
-                            username: string | null;
-                        } | null;
-                    } | null = null;
-                    if (newMessage.reply_to) {
-                        const { data: replyMsg } = await supabase
-                            .from("messages")
-                            .select("content, user_id")
-                            .eq("id", newMessage.reply_to)
+                    let replyData = null;
+                    if (replyResult.data) {
+                        const replyMsg = replyResult.data as { user_id: string; content: string };
+                        const { data: replyProfile } = await supabase
+                            .from("profiles")
+                            .select("full_name, username")
+                            .eq("id", replyMsg.user_id)
                             .single();
 
-                        if (replyMsg) {
-                            const { data: replyProfile } = await supabase
-                                .from("profiles")
-                                .select("full_name, username")
-                                .eq("id", replyMsg.user_id)
-                                .single();
-
-                            replyData = {
-                                content: replyMsg.content,
-                                profiles: replyProfile,
-                            };
-                        }
+                        replyData = {
+                            content: replyMsg.content,
+                            profiles: replyProfile,
+                        };
                     }
 
-                    setMessages((current) => [...current, {
-                        ...newMessage,
-                        profiles: profileResult.data,
-                        reply_to_message: replyData
-                    }]);
+                    setMessages((current) => {
+                        // Deduplicate in case we already got this message via some other channel
+                        if (current.some(m => m.id === newMessage.id)) return current;
+
+                        return [...current, {
+                            ...newMessage,
+                            profiles: profileResult.data,
+                            reply_to_message: replyData
+                        }].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                    });
                 }
             )
             .on("presence", { event: "sync" }, () => {
@@ -300,13 +312,20 @@ export function ChatMessages({
                                                         <span className="font-bold opacity-80">{repliedUser}</span>
                                                         <span className="truncate opacity-70 italic">
                                                             {(() => {
+                                                                // Handle potential array from Supabase join
+                                                                const replyTo = Array.isArray(message.reply_to_message)
+                                                                    ? message.reply_to_message[0]
+                                                                    : message.reply_to_message;
+
+                                                                if (!replyTo) return null;
+
                                                                 try {
-                                                                    const data = JSON.parse(message.reply_to_message.content);
+                                                                    const data = JSON.parse(replyTo.content);
                                                                     if (data.type === "audio") return "Voice message";
                                                                     if (data.type === "chart") return "Chart";
-                                                                    return message.reply_to_message.content;
+                                                                    return replyTo.content;
                                                                 } catch {
-                                                                    return message.reply_to_message.content;
+                                                                    return replyTo.content;
                                                                 }
                                                             })()}
                                                         </span>

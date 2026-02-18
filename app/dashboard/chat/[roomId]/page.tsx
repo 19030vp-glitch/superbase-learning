@@ -58,9 +58,14 @@ export default async function RoomPage({
     const userIds = new Set<string>();
     rawMessages?.forEach((msg) => {
         userIds.add(msg.user_id);
-        const replyToMessage = msg.reply_to_message as { user_id: string } | null;
-        if (replyToMessage?.user_id) {
-            userIds.add(replyToMessage.user_id);
+        // Handle potential array from Supabase join
+        const replyTo = Array.isArray(msg.reply_to_message)
+            ? msg.reply_to_message[0]
+            : msg.reply_to_message;
+
+        const replyToData = replyTo as { user_id: string } | null;
+        if (msg.reply_to && replyToData?.user_id) {
+            userIds.add(replyToData.user_id);
         }
     });
 
@@ -74,13 +79,18 @@ export default async function RoomPage({
 
     // Enrich messages with profile data
     const initialMessages = rawMessages?.map((msg) => {
-        const replyToMessage = msg.reply_to_message as { content: string; user_id: string } | null;
+        const replyTo = Array.isArray(msg.reply_to_message)
+            ? msg.reply_to_message[0]
+            : msg.reply_to_message;
+
+        const replyToData = (msg.reply_to && replyTo) ? (replyTo as { content: string; user_id: string }) : null;
+
         return {
             ...msg,
             profiles: profileMap.get(msg.user_id) || null,
-            reply_to_message: replyToMessage ? {
-                ...replyToMessage,
-                profiles: profileMap.get(replyToMessage.user_id) || null,
+            reply_to_message: replyToData ? {
+                ...replyToData,
+                profiles: profileMap.get(replyToData.user_id) || null,
             } : null,
         };
     }) || [];
