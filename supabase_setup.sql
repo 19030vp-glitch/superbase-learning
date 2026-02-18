@@ -81,3 +81,19 @@ create policy "Authenticated users can insert messages." on messages
 
 -- Enable Realtime for messages table
 alter publication supabase_realtime add table messages;
+
+-- Create storage bucket for voice messages
+insert into storage.buckets (id, name, public)
+values ('voice-messages', 'voice-messages', true)
+on conflict (id) do nothing;
+
+-- Set up RLS for voice-messages bucket
+create policy "Authenticated users can upload voice messages"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'voice-messages');
+
+create policy "Anyone can view voice messages"
+  on storage.objects for select
+  to public
+  using (bucket_id = 'voice-messages');
