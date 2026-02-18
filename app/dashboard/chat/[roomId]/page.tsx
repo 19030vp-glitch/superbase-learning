@@ -56,10 +56,11 @@ export default async function RoomPage({
 
     // Collect all unique user IDs from messages and their replies
     const userIds = new Set<string>();
-    rawMessages?.forEach((msg: any) => {
+    rawMessages?.forEach((msg) => {
         userIds.add(msg.user_id);
-        if (msg.reply_to_message?.user_id) {
-            userIds.add(msg.reply_to_message.user_id);
+        const replyToMessage = msg.reply_to_message as { user_id: string } | null;
+        if (replyToMessage?.user_id) {
+            userIds.add(replyToMessage.user_id);
         }
     });
 
@@ -69,17 +70,20 @@ export default async function RoomPage({
         .select("id, full_name, avatar_url, username")
         .in("id", Array.from(userIds));
 
-    const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+    const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
 
     // Enrich messages with profile data
-    const initialMessages = rawMessages?.map((msg: any) => ({
-        ...msg,
-        profiles: profileMap.get(msg.user_id) || null,
-        reply_to_message: msg.reply_to_message ? {
-            ...msg.reply_to_message,
-            profiles: profileMap.get(msg.reply_to_message.user_id) || null,
-        } : null,
-    })) || [];
+    const initialMessages = rawMessages?.map((msg) => {
+        const replyToMessage = msg.reply_to_message as { content: string; user_id: string } | null;
+        return {
+            ...msg,
+            profiles: profileMap.get(msg.user_id) || null,
+            reply_to_message: replyToMessage ? {
+                ...replyToMessage,
+                profiles: profileMap.get(replyToMessage.user_id) || null,
+            } : null,
+        };
+    }) || [];
 
     return (
         <div className="space-y-4">

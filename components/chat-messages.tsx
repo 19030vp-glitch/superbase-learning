@@ -12,6 +12,7 @@ import {
 import { Bar, BarChart, XAxis, CartesianGrid } from "recharts";
 import { Reply } from "lucide-react";
 import { Message } from "@/lib/types";
+import { AudioPlayer } from "@/components/audio-player";
 
 interface ChatMessagesProps {
     roomId: string;
@@ -74,7 +75,13 @@ export function ChatMessages({
                         .single();
 
                     // Fetch reply message data if applicable
-                    let replyData: any = null;
+                    let replyData: {
+                        content: string;
+                        profiles: {
+                            full_name: string | null;
+                            username: string | null;
+                        } | null;
+                    } | null = null;
                     if (newMessage.reply_to) {
                         const { data: replyMsg } = await supabase
                             .from("messages")
@@ -187,6 +194,9 @@ export function ChatMessages({
                     </div>
                 );
             }
+            if (data.type === "audio" && data.url) {
+                return <AudioPlayer url={data.url} />;
+            }
         } catch {
             // Not a chart, just render as text
         }
@@ -288,7 +298,18 @@ export function ChatMessages({
                                                 {message.reply_to_message && (
                                                     <div className={`mb-2 p-2 border-l-2 bg-black/5 rounded text-xs flex flex-col gap-1 ${isOwnMessage ? "border-primary-foreground/50" : "border-primary/50"}`}>
                                                         <span className="font-bold opacity-80">{repliedUser}</span>
-                                                        <span className="truncate opacity-70 italic">{message.reply_to_message.content}</span>
+                                                        <span className="truncate opacity-70 italic">
+                                                            {(() => {
+                                                                try {
+                                                                    const data = JSON.parse(message.reply_to_message.content);
+                                                                    if (data.type === "audio") return "Voice message";
+                                                                    if (data.type === "chart") return "Chart";
+                                                                    return message.reply_to_message.content;
+                                                                } catch {
+                                                                    return message.reply_to_message.content;
+                                                                }
+                                                            })()}
+                                                        </span>
                                                     </div>
                                                 )}
                                                 {renderMessageContent(message.content)}
