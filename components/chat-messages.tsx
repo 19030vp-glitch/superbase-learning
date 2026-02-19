@@ -45,7 +45,7 @@ export function ChatMessages({
     const [onlineCount, setOnlineCount] = useState(0);
     const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
     const supabase = createClient();
-    const scrollRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Deduplicate and merge initial messages with current state when props change
     // Using render-phase state update to avoid cascading renders (React recommended pattern)
@@ -173,12 +173,8 @@ export function ChatMessages({
     }, [roomId, supabase, currentUserId, currentUserProfile]);
 
     useEffect(() => {
-        if (scrollRef.current) {
-            setTimeout(() => {
-                scrollRef.current!.scrollTop = scrollRef.current!.scrollHeight;
-            }, 50);
-        }
-    }, [messages]);
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }, [messages, typingUsers]);
 
     const renderMessageContent = (content: string) => {
         try {
@@ -258,7 +254,7 @@ export function ChatMessages({
                         </span>
                     </div>
                 </div>
-                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                <ScrollArea className="flex-1 p-4">
                     <div className="flex flex-col gap-4">
                         {messages.map((message) => {
                             const isOwnMessage = message.user_id === currentUserId;
@@ -373,6 +369,7 @@ export function ChatMessages({
                                 </span>
                             </div>
                         )}
+                        <div ref={messagesEndRef} />
                     </div>
                 </ScrollArea>
             </div>
