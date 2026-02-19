@@ -45,7 +45,7 @@ export function ChatView({
     return (
         <div className="flex flex-col h-full overflow-hidden bg-background/50 backdrop-blur-xl relative">
             {/* Professional Sticky Header */}
-            <header className="flex items-center justify-between px-4 py-3 border-b bg-background/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
+            <header className="flex flex-shrink-0 items-center justify-between px-4 py-3 border-b bg-background/80 backdrop-blur-md sticky top-0 z-10">
                 <div className="flex items-center gap-3 min-w-0">
                     <Button variant="ghost" size="icon" asChild className="h-9 w-9 border md:hidden">
                         <Link href="/dashboard/chat">
@@ -111,13 +111,15 @@ export function ChatView({
                 />
             </div>
 
-            <ChatInput
-                roomId={roomId}
-                user={user}
-                replyTo={replyTo}
-                onCancelReply={() => setReplyTo(null)}
-                onMessageSent={() => setReplyTo(null)}
-            />
+            <div className="flex-shrink-0">
+                <ChatInput
+                    roomId={roomId}
+                    user={user}
+                    replyTo={replyTo}
+                    onCancelReply={() => setReplyTo(null)}
+                    onMessageSent={() => setReplyTo(null)}
+                />
+            </div>
         </div>
     );
 }

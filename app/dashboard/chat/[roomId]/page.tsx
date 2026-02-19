@@ -109,8 +109,8 @@ export default async function RoomPage({
     });
 
     return (
-        <div className="h-full flex flex-col">
-            <Card className="flex-1 flex flex-col overflow-hidden border-none shadow-none md:shadow-2xl bg-transparent md:bg-muted/20 md:rounded-2xl">
+        <div className="h-[calc(100dvh-150px)] md:h-[calc(100dvh-180px)] flex flex-col -mt-4 md:-mt-8">
+            <Card className="flex-1 flex flex-col overflow-hidden border-none shadow-none md:shadow-2xl bg-transparent md:bg-muted/20 md:rounded-2xl relative">
                 <ChatView
                     key={roomId}
                     roomId={roomId}
