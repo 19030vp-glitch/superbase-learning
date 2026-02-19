@@ -109,26 +109,14 @@ export default async function RoomPage({
     });
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild>
-                    <Link href="/dashboard/chat">
-                        <ArrowLeft className="h-4 w-4" />
-                    </Link>
-                </Button>
-                <div>
-                    <h1 className="text-2xl font-bold">{room.name}</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Created {new Date(room.created_at).toLocaleDateString()}
-                    </p>
-                </div>
-            </div>
-
-            <Card className="flex flex-col h-[calc(100vh-16rem)] overflow-hidden border-none shadow-2xl bg-muted/20">
+        <div className="h-full flex flex-col">
+            <Card className="flex-1 flex flex-col overflow-hidden border-none shadow-none md:shadow-2xl bg-transparent md:bg-muted/20 md:rounded-2xl">
                 <ChatView
                     key={roomId}
                     roomId={roomId}
                     initialMessages={initialMessages || []}
+                    roomName={room.name}
+                    roomCreatedAt={room.created_at}
                     user={user}
                     currentUserProfile={currentUserProfile || undefined}
                 />
