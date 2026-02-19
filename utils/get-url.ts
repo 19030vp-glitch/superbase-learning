@@ -3,7 +3,7 @@ export const getURL = () => {
         process.env.NEXT_PUBLIC_SITE_URL ??
         process.env.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel for client side
         process.env.VERCEL_URL ?? // Automatically set by Vercel for server side
-        "http://localhost:3000";
+        "https://superbase-learning.vercel.app";
 
     // Make sure to include `https://` when not localhost.
     url = url.includes("http") ? url : `https://${url}`;
