@@ -63,6 +63,9 @@ create table if not exists messages (
   updated_at timestamp with time zone
 );
 
+-- Enable full replica identity for messages to support real-time DELETE filters
+alter table messages replica identity full;
+
 -- Enable RLS
 alter table rooms enable row level security;
 alter table messages enable row level security;
