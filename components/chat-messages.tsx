@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,7 +46,7 @@ export function ChatMessages({
     const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
     const [onlineCount, setOnlineCount] = useState(0);
     const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Group messages by date
@@ -63,6 +63,9 @@ export function ChatMessages({
         acc[date].push(message);
         return acc;
     }, {});
+
+    const displayName = currentUserProfile?.full_name || currentUserProfile?.username || "Anonymous";
+    const avatarUrl = currentUserProfile?.avatar_url || null;
 
     useEffect(() => {
         // ... (keep the same useEffect logic for real-time and presence)
@@ -124,14 +127,14 @@ export function ChatMessages({
                 if (status === "SUBSCRIBED") {
                     await channel.track({
                         user_id: currentUserId,
-                        user_name: currentUserProfile?.full_name || currentUserProfile?.username || "Anonymous",
-                        avatar_url: currentUserProfile?.avatar_url,
+                        user_name: displayName,
+                        avatar_url: avatarUrl,
                         online_at: new Date().toISOString(),
                     });
                 }
             });
         return () => { supabase.removeChannel(channel); };
-    }, [roomId, supabase, currentUserId, currentUserProfile]);
+    }, [roomId, supabase, currentUserId, displayName, avatarUrl]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
