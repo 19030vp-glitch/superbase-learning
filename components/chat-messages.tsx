@@ -168,6 +168,14 @@ export function ChatMessages({
             if (data.type === "audio" && data.url) {
                 return <AudioPlayer url={data.url} />;
             }
+            if (data.type === "gif" && data.url) {
+                return (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-border/50">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={data.url} alt="GIF" className="max-w-full h-auto object-contain" />
+                    </div>
+                );
+            }
         } catch { }
         return content;
     };
@@ -274,6 +282,7 @@ export function ChatMessages({
                                                                         const data = JSON.parse(replyTo.content);
                                                                         if (data.type === "audio") return "Voice message";
                                                                         if (data.type === "chart") return "Chart data";
+                                                                        if (data.type === "gif") return "GIF";
                                                                         return replyTo.content;
                                                                     } catch { return replyTo.content; }
                                                                 })()}
