@@ -87,6 +87,11 @@ insert into storage.buckets (id, name, public)
 values ('voice-messages', 'voice-messages', true)
 on conflict (id) do nothing;
 
+-- Create storage bucket for avatars
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
 -- Set up RLS for voice-messages bucket
 create policy "Authenticated users can upload voice messages"
   on storage.objects for insert
@@ -97,3 +102,24 @@ create policy "Anyone can view voice messages"
   on storage.objects for select
   to public
   using (bucket_id = 'voice-messages');
+
+-- Set up RLS for avatars bucket
+create policy "Authenticated users can upload avatars"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'avatars' AND auth.uid() = owner);
+
+create policy "Anyone can view avatars"
+  on storage.objects for select
+  to public
+  using (bucket_id = 'avatars');
+
+create policy "Users can update their own avatars"
+  on storage.objects for update
+  to authenticated
+  using (bucket_id = 'avatars' AND auth.uid() = owner);
+
+create policy "Users can delete their own avatars"
+  on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'avatars' AND auth.uid() = owner);
