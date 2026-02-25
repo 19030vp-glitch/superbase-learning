@@ -7,6 +7,7 @@ import { sendMessage } from "@/app/dashboard/chat/actions";
 import { SendHorizontal, X, Reply, Mic, Square, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { EmojiPicker } from "@/components/emoji-picker";
+import { GifPicker } from "@/components/gif-picker";
 import { User } from "@supabase/supabase-js";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { ReplyTo } from "@/lib/types";
@@ -90,6 +91,23 @@ export function ChatInput({
             handleVoiceUpload(audioBlob);
         }
     }, [audioBlob, handleVoiceUpload]);
+
+    const handleGifSelect = async (url: string) => {
+        setIsLoading(true);
+        const gifMessageContent = JSON.stringify({
+            type: "gif",
+            url: url,
+        });
+
+        const result = await sendMessage(roomId, gifMessageContent, replyTo?.id);
+        setIsLoading(false);
+
+        if (result.success) {
+            onMessageSent?.();
+        } else {
+            toast.error("Failed to send GIF");
+        }
+    };
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -181,10 +199,11 @@ export function ChatInput({
                 <div className="flex items-center gap-2 p-2 md:p-3">
                     {!isRecording ? (
                         <>
-                            <div className="hidden md:block">
+                            <div className="hidden md:flex items-center">
                                 <EmojiPicker
                                     onChange={(emoji) => setContent((prev) => prev + emoji)}
                                 />
+                                <GifPicker onSelect={handleGifSelect} />
                             </div>
                             <div className="flex-1 relative flex items-center">
                                 <Input
@@ -196,10 +215,11 @@ export function ChatInput({
                                     disabled={isLoading}
                                     className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 h-10 md:h-12 text-sm md:text-base px-3 md:px-4 placeholder:text-muted-foreground/50 transition-all font-medium"
                                 />
-                                <div className="md:hidden">
+                                <div className="md:hidden flex items-center">
                                     <EmojiPicker
                                         onChange={(emoji) => setContent((prev) => prev + emoji)}
                                     />
+                                    <GifPicker onSelect={handleGifSelect} />
                                 </div>
                             </div>
                             {content.trim() ? (
