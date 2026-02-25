@@ -12,6 +12,8 @@ export interface Message {
     room_id: string;
     profiles: Profile | null;
     reply_to?: string;
+    is_edited: boolean;
+    updated_at?: string;
     reply_to_message?: {
         content: string;
         profiles: {
