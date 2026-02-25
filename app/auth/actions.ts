@@ -103,12 +103,14 @@ export async function updateProfile(formData: FormData) {
     const fullName = formData.get("fullName") as string;
     const username = formData.get("username") as string;
     const website = formData.get("website") as string;
+    const avatarUrl = formData.get("avatarUrl") as string;
 
     const { error } = await supabase.from("profiles").upsert({
         id: user.id,
         full_name: fullName,
         username,
         website,
+        avatar_url: avatarUrl,
         updated_at: new Date().toISOString(),
     });
 

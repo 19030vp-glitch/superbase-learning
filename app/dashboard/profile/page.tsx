@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateProfile } from "@/app/auth/actions";
+import { AvatarUpload } from "@/components/avatar-upload";
 
 export default async function ProfilePage({
     searchParams,
@@ -51,6 +52,14 @@ export default async function ProfilePage({
                 </CardHeader>
                 <CardContent>
                     <form action={updateProfile} className="space-y-6">
+                        <div className="flex flex-col items-center pb-4 border-b border-border/50">
+                            <AvatarUpload
+                                userId={user.id}
+                                currentAvatarUrl={profile?.avatar_url}
+                                name={profile?.full_name || profile?.username}
+                            />
+                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-muted-foreground">Email (Publicly visible)</Label>
                             <Input
