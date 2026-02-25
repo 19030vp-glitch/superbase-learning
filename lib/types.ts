@@ -9,6 +9,7 @@ export interface Message {
     content: string;
     created_at: string;
     user_id: string;
+    room_id: string;
     profiles: Profile | null;
     reply_to?: string;
     reply_to_message?: {
@@ -19,6 +20,7 @@ export interface Message {
         } | null;
     } | null;
 }
+
 
 export interface ReplyTo {
     id: string;

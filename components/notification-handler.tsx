@@ -3,6 +3,9 @@
 import { useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
+import { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
+import { Message } from "@/lib/types";
+
 
 interface NotificationHandlerProps {
     currentUserId: string;
@@ -35,8 +38,9 @@ export function NotificationHandler({ currentUserId }: NotificationHandlerProps)
                     schema: "public",
                     table: "messages",
                 },
-                async (payload) => {
+                async (payload: RealtimePostgresInsertPayload<Message>) => {
                     const newMessage = payload.new;
+
 
                     // Don't notify for our own messages
                     if (newMessage.user_id === currentUserId) return;

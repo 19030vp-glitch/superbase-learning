@@ -12,6 +12,10 @@ import {
 import { Bar, BarChart, XAxis, CartesianGrid } from "recharts";
 import { Reply, Users } from "lucide-react";
 import { Message } from "@/lib/types";
+import { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
+
+
+
 import { AudioPlayer } from "@/components/audio-player";
 
 interface ChatMessagesProps {
@@ -81,8 +85,9 @@ export function ChatMessages({
                     table: "messages",
                     filter: `room_id=eq.${roomId}`,
                 },
-                async (payload) => {
+                async (payload: RealtimePostgresInsertPayload<Message>) => {
                     const newMessage = payload.new as Message;
+
                     const [profileResult, replyResult] = await Promise.all([
                         supabase.from("profiles").select("full_name, avatar_url, username").eq("id", newMessage.user_id).single(),
                         newMessage.reply_to ? supabase.from("messages").select("content, user_id").eq("id", newMessage.reply_to).single() : Promise.resolve({ data: null })
@@ -113,7 +118,7 @@ export function ChatMessages({
                 setOnlineUsers(uniqueUsers);
                 setOnlineCount(uniqueUsers.length);
             })
-            .on("broadcast", { event: "typing" }, (payload) => {
+            .on("broadcast", { event: "typing" }, (payload: { payload: { userId: string, userName: string, isTyping: boolean } }) => {
                 const { userId, userName, isTyping } = payload.payload;
                 if (userId === currentUserId) return;
                 setTypingUsers((prev) => {
@@ -123,8 +128,10 @@ export function ChatMessages({
                     return next;
                 });
             })
-            .subscribe(async (status) => {
+            .subscribe(async (status: "SUBSCRIBED" | "TIMED_OUT" | "CLOSED" | "CHANNEL_ERROR") => {
                 if (status === "SUBSCRIBED") {
+
+
                     await channel.track({
                         user_id: currentUserId,
                         user_name: displayName,
