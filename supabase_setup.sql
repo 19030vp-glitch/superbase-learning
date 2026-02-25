@@ -104,22 +104,34 @@ create policy "Anyone can view voice messages"
   using (bucket_id = 'voice-messages');
 
 -- Set up RLS for avatars bucket
-create policy "Authenticated users can upload avatars"
-  on storage.objects for insert
-  to authenticated
-  with check (bucket_id = 'avatars' AND auth.uid() = owner);
+-- Policy: Allow authenticated users to upload to a folder named after their own UID
+CREATE POLICY "Authenticated users can upload avatars"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'avatars' AND 
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
 
-create policy "Anyone can view avatars"
-  on storage.objects for select
-  to public
-  using (bucket_id = 'avatars');
+CREATE POLICY "Anyone can view avatars"
+  ON storage.objects FOR SELECT
+  TO public
+  USING (bucket_id = 'avatars');
 
-create policy "Users can update their own avatars"
-  on storage.objects for update
-  to authenticated
-  using (bucket_id = 'avatars' AND auth.uid() = owner);
+-- Policy: Allow users to update objects in their own folder
+CREATE POLICY "Users can update their own avatars"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (
+    bucket_id = 'avatars' AND 
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
 
-create policy "Users can delete their own avatars"
-  on storage.objects for delete
-  to authenticated
-  using (bucket_id = 'avatars' AND auth.uid() = owner);
+-- Policy: Allow users to delete objects in their own folder
+CREATE POLICY "Users can delete their own avatars"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (
+    bucket_id = 'avatars' AND 
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
