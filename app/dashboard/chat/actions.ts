@@ -62,3 +62,55 @@ export async function sendMessage(roomId: string, content: string, replyToId?: s
 
     return { success: true };
 }
+
+export async function updateMessage(messageId: string, content: string) {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { error: "Not authenticated" };
+    }
+
+    const { error } = await supabase
+        .from("messages")
+        .update({
+            content,
+            is_edited: true,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", messageId)
+        .eq("user_id", user.id);
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    return { success: true };
+}
+
+export async function deleteMessage(messageId: string) {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { error: "Not authenticated" };
+    }
+
+    const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageId)
+        .eq("user_id", user.id);
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    return { success: true };
+}

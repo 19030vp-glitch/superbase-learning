@@ -18,6 +18,8 @@ interface RawMessage {
     user_id: string;
     room_id: string;
     reply_to: string | null;
+    is_edited: boolean;
+    updated_at: string | null;
     reply_to_message: RawReplyMessage | RawReplyMessage[] | null;
 }
 
@@ -100,6 +102,7 @@ export default async function RoomPage({
         return {
             ...msg,
             reply_to: msg.reply_to ?? undefined,
+            updated_at: msg.updated_at ?? undefined,
             profiles: profileMap.get(msg.user_id) || null,
             reply_to_message: (msg.reply_to && replyToMsg) ? {
                 ...replyToMsg,
