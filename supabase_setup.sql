@@ -58,7 +58,9 @@ create table if not exists messages (
   room_id uuid references rooms on delete cascade not null,
   user_id uuid references auth.users on delete cascade not null,
   content text not null,
-  reply_to uuid references messages(id) on delete set null
+  reply_to uuid references messages(id) on delete set null,
+  is_edited boolean default false,
+  updated_at timestamp with time zone
 );
 
 -- Enable RLS
@@ -78,6 +80,12 @@ create policy "Messages are viewable by authenticated users." on messages
 
 create policy "Authenticated users can insert messages." on messages
   for insert with check (auth.uid() is not null);
+
+create policy "Users can update their own messages." on messages
+  for update using (auth.uid() = user_id);
+
+create policy "Users can delete their own messages." on messages
+  for delete using (auth.uid() = user_id);
 
 -- Enable Realtime for messages table
 alter publication supabase_realtime add table messages;

@@ -10,10 +10,19 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, CartesianGrid } from "recharts";
-import { Reply, Users } from "lucide-react";
+import { Reply, Users, MoreVertical, Pencil, Trash2, Check, X } from "lucide-react";
 import { Message } from "@/lib/types";
-import { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
-
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { updateMessage, deleteMessage } from "@/app/dashboard/chat/actions";
+import { toast } from "sonner";
 
 
 import { AudioPlayer } from "@/components/audio-player";
@@ -50,6 +59,33 @@ export function ChatMessages({
     const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
     const [onlineCount, setOnlineCount] = useState(0);
     const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async (messageId: string) => {
+        if (!editContent.trim() || isSaving) return;
+        setIsSaving(true);
+        const result = await updateMessage(messageId, editContent);
+        setIsSaving(false);
+        if (result.success) {
+            setEditingId(null);
+            toast.success("Message updated");
+        } else {
+            toast.error(result.error || "Failed to update message");
+        }
+    };
+
+    const handleDelete = async (messageId: string) => {
+        if (!confirm("Are you sure you want to delete this message?")) return;
+        const result = await deleteMessage(messageId);
+        if (result.success) {
+            toast.success("Message deleted");
+        } else {
+            toast.error(result.error || "Failed to delete message");
+        }
+    };
+
     const supabase = useMemo(() => createClient(), []);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -80,28 +116,44 @@ export function ChatMessages({
             .on(
                 "postgres_changes",
                 {
-                    event: "INSERT",
+                    event: "*",
                     schema: "public",
                     table: "messages",
                     filter: `room_id=eq.${roomId}`,
                 },
-                async (payload: RealtimePostgresInsertPayload<Message>) => {
-                    const newMessage = payload.new as Message;
+                async (payload: RealtimePostgresChangesPayload<Message>) => {
+                    if (payload.eventType === "INSERT") {
+                        const newMessage = payload.new as Message;
 
-                    const [profileResult, replyResult] = await Promise.all([
-                        supabase.from("profiles").select("full_name, avatar_url, username").eq("id", newMessage.user_id).single(),
-                        newMessage.reply_to ? supabase.from("messages").select("content, user_id").eq("id", newMessage.reply_to).single() : Promise.resolve({ data: null })
-                    ]);
-                    let replyData: Message["reply_to_message"] = null;
-                    if (replyResult.data) {
-                        const replyMsg = replyResult.data as { user_id: string; content: string };
-                        const { data: replyProfile } = await supabase.from("profiles").select("full_name, username").eq("id", replyMsg.user_id).single();
-                        replyData = { content: replyMsg.content, profiles: replyProfile };
+                        const [profileResult, replyResult] = await Promise.all([
+                            supabase.from("profiles").select("full_name, avatar_url, username").eq("id", newMessage.user_id).single(),
+                            newMessage.reply_to ? supabase.from("messages").select("content, user_id").eq("id", newMessage.reply_to).single() : Promise.resolve({ data: null })
+                        ]);
+                        let replyData: Message["reply_to_message"] = null;
+                        if (replyResult.data) {
+                            const replyMsg = replyResult.data as { user_id: string; content: string };
+                            const { data: replyProfile } = await supabase.from("profiles").select("full_name, username").eq("id", replyMsg.user_id).single();
+                            replyData = { content: replyMsg.content, profiles: replyProfile };
+                        }
+                        setMessages((current) => {
+                            if (current.some(m => m.id === newMessage.id)) return current;
+                            return [...current, { ...newMessage, profiles: profileResult.data, reply_to_message: replyData }].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                        });
+                    } else if (payload.eventType === "UPDATE") {
+                        const updatedMessage = payload.new as Message;
+                        setMessages((current) =>
+                            current.map((m) =>
+                                m.id === updatedMessage.id
+                                    ? { ...m, ...updatedMessage }
+                                    : m
+                            )
+                        );
+                    } else if (payload.eventType === "DELETE") {
+                        const deletedId = (payload.old as { id: string }).id;
+                        setMessages((current) =>
+                            current.filter((m) => m.id !== deletedId)
+                        );
                     }
-                    setMessages((current) => {
-                        if (current.some(m => m.id === newMessage.id)) return current;
-                        return [...current, { ...newMessage, profiles: profileResult.data, reply_to_message: replyData }].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                    });
                 }
             )
             .on("presence", { event: "sync" }, () => {
@@ -253,14 +305,47 @@ export function ChatMessages({
                                         )}
                                         <div className={`flex flex-col gap-1.5 max-w-[85%] md:max-w-[70%] min-w-0 ${isOwnMessage ? "items-end" : "items-start"}`}>
                                             <div className="relative group/actions flex items-center gap-2">
-                                                {isOwnMessage && onReply && (
-                                                    <button
-                                                        onClick={() => onReply({ id: message.id, content: message.content, username: displayName })}
-                                                        className="opacity-0 group-hover/msg:opacity-100 transition-all p-2 hover:bg-muted/50 rounded-full text-muted-foreground hover:text-foreground shrink-0 backdrop-blur-sm"
-                                                        title="Reply"
-                                                    >
-                                                        <Reply className="w-4 h-4" />
-                                                    </button>
+                                                {isOwnMessage && (
+                                                    <div className="flex items-center opacity-0 group-hover/msg:opacity-100 transition-all">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <button
+                                                                    className="p-2 hover:bg-muted/50 rounded-full text-muted-foreground hover:text-foreground shrink-0 backdrop-blur-sm"
+                                                                    title="More actions"
+                                                                >
+                                                                    <MoreVertical className="w-4 h-4" />
+                                                                </button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    className="gap-2"
+                                                                    onClick={() => {
+                                                                        setEditingId(message.id);
+                                                                        setEditContent(message.content);
+                                                                    }}
+                                                                >
+                                                                    <Pencil className="w-4 h-4" />
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="gap-2 text-destructive focus:text-destructive"
+                                                                    onClick={() => handleDelete(message.id)}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                        {onReply && (
+                                                            <button
+                                                                onClick={() => onReply({ id: message.id, content: message.content, username: displayName })}
+                                                                className="p-2 hover:bg-muted/50 rounded-full text-muted-foreground hover:text-foreground shrink-0 backdrop-blur-sm"
+                                                                title="Reply"
+                                                            >
+                                                                <Reply className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 )}
                                                 <div
                                                     className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm relative overflow-hidden transition-all group-hover/msg:shadow-md border ${isOwnMessage
@@ -290,7 +375,45 @@ export function ChatMessages({
                                                         </div>
                                                     )}
                                                     <div className="leading-relaxed break-words">
-                                                        {renderMessageContent(message.content)}
+                                                        {editingId === message.id ? (
+                                                            <div className="flex flex-col gap-2 min-w-[200px]">
+                                                                <Input
+                                                                    value={editContent}
+                                                                    onChange={(e) => setEditContent(e.target.value)}
+                                                                    className="bg-background/50 border-primary/20 focus-visible:ring-primary/30"
+                                                                    autoFocus
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === "Enter" && !e.shiftKey) {
+                                                                            e.preventDefault();
+                                                                            handleSave(message.id);
+                                                                        } else if (e.key === "Escape") {
+                                                                            setEditingId(null);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <div className="flex justify-end gap-1">
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="ghost"
+                                                                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                                                        onClick={() => setEditingId(null)}
+                                                                        disabled={isSaving}
+                                                                    >
+                                                                        <X className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="icon"
+                                                                        className="h-7 w-7"
+                                                                        disabled={isSaving || !editContent.trim() || editContent === message.content}
+                                                                        onClick={() => handleSave(message.id)}
+                                                                    >
+                                                                        <Check className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            renderMessageContent(message.content)
+                                                        )}
                                                     </div>
                                                 </div>
                                                 {!isOwnMessage && onReply && (
@@ -309,8 +432,11 @@ export function ChatMessages({
                                                         {displayName}
                                                     </span>
                                                 )}
-                                                <span className="text-[10px] text-muted-foreground font-medium uppercase">
+                                                <span className="text-[10px] text-muted-foreground font-medium uppercase flex items-center gap-1">
                                                     {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {message.is_edited && (
+                                                        <span className="text-[9px] opacity-70 italic">(edited)</span>
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
